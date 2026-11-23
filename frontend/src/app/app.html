@@ -1,0 +1,292 @@
+
+<main class="dashboard">
+  <div class="dashboard-container">
+
+    <!-- Header -->
+    <header class="dashboard-header">
+      <div>
+        <div class="eyebrow">PRODUCTIVITY DASHBOARD</div>
+        <h1>Task Manager</h1>
+        <p>Organise your tasks and stay on top of your day.</p>
+      </div>
+
+      <div class="date-badge">
+        {{ today | date:'EEEE, d MMMM yyyy' }}
+      </div>
+    </header>
+
+    <!-- Statistics -->
+    <section class="stats-grid" aria-label="Task statistics">
+      <article class="stat-card total-stat">
+        <div class="stat-label">Total Tasks</div>
+        <div class="stat-value">{{ tasks().length }}</div>
+        <div class="stat-description">All your tasks</div>
+      </article>
+
+      <article class="stat-card todo-stat">
+        <div class="stat-label">To do</div>
+        <div class="stat-value">{{ pendingCount() }}</div>
+        <div class="stat-description">Waiting to be completed</div>
+      </article>
+
+      <article class="stat-card completed-stat">
+        <div class="stat-label">Completed</div>
+        <div class="stat-value">{{ completedCount() }}</div>
+        <div class="stat-description">Tasks finished</div>
+      </article>
+    </section>
+
+    <!-- Weather -->
+    <section class="weather-card" aria-labelledby="weather-heading">
+      <div class="section-header">
+        <div>
+          <div class="section-eyebrow">LOCAL CONDITIONS</div>
+          <h2 id="weather-heading">Weather Overview</h2>
+        </div>
+
+        <button
+          type="button"
+          class="btn-outline"
+          (click)="useMyLocation()"
+          [disabled]="weatherLoading()">
+          Use my location
+        </button>
+      </div>
+
+      @if (weatherLoading()) {
+        <p class="loading-text" role="status">
+          Loading weather information...
+        </p>
+      } @else if (weatherError()) {
+        <div class="error-panel" role="alert">
+          <p>{{ weatherError() }}</p>
+          <button type="button" class="btn-outline"
+                  (click)="loadWeather()">
+            Retry
+          </button>
+        </div>
+      } @else if (weather(); as currentWeather) {
+        <div class="weather-content">
+          <div class="weather-primary">
+            @if (currentWeather.icon) {
+              <img
+                [src]="weatherIconUrl(currentWeather.icon)"
+                alt=""
+                width="64"
+                height="64"
+              />
+            }
+
+            <div>
+              <h3>{{ currentWeather.city }}</h3>
+              <p class="weather-country">{{ currentWeather.country }}</p>
+              <div class="temperature">
+                {{ currentWeather.temperature }}°C
+              </div>
+              <p class="weather-condition">
+                {{ currentWeather.condition }}
+              </p>
+            </div>
+          </div>
+
+          <div class="weather-times">
+            <div class="weather-time">
+              <span class="time-label">Sunrise</span>
+              <strong>{{ currentWeather.sunrise }}</strong>
+            </div>
+            <div class="weather-time">
+              <span class="time-label">Sunset</span>
+              <strong>{{ currentWeather.sunset }}</strong>
+            </div>
+          </div>
+        </div>
+      }
+    </section>
+
+    <!-- Add task -->
+    <section class="create-task-card" aria-labelledby="create-heading">
+      <div class="section-header">
+        <div>
+          <div class="section-eyebrow">CREATE</div>
+          <h2 id="create-heading">Add New Task</h2>
+        </div>
+      </div>
+
+      <form (ngSubmit)="addTask()" class="task-form">
+        <div class="form-group">
+          <label for="task-title">Task title</label>
+          <input
+            id="task-title"
+            name="title"
+            type="text"
+            [(ngModel)]="title"
+            placeholder="What needs to be done?"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="task-description">Description</label>
+          <textarea
+            id="task-description"
+            name="description"
+            [(ngModel)]="description"
+            placeholder="Add more details about your task..."
+            rows="3"
+          ></textarea>
+        </div>
+
+        <div class="form-actions">
+          <button
+            type="submit"
+            class="btn-primary"
+            [disabled]="saving() || !title.trim()">
+            {{ saving() ? 'Adding task...' : '+ Add Task' }}
+          </button>
+        </div>
+      </form>
+    </section>
+
+    @if (error()) {
+      <div class="error-panel" role="alert">
+        {{ error() }}
+      </div>
+    }
+
+    <!-- Two-column board -->
+    <section class="board-section" aria-label="Task board">
+      <div class="board-heading">
+        <div>
+          <div class="section-eyebrow">YOUR WORK</div>
+          <h2>Task Board</h2>
+        </div>
+        <span class="board-summary">
+          {{ tasks().length }} total tasks
+        </span>
+      </div>
+
+      @if (loading()) {
+        <div class="loading-panel" role="status">
+          Loading your tasks...
+        </div>
+      } @else {
+        <div class="task-board">
+
+          <!-- Left column -->
+          <section class="task-column todo-column"
+                   aria-labelledby="todo-heading">
+            <div class="column-header">
+              <div class="column-title-group">
+                <span class="column-icon todo-icon">○</span>
+                <div>
+                  <h3 id="todo-heading">To do</h3>
+                  <p>Tasks waiting to be completed</p>
+                </div>
+              </div>
+
+              <span class="task-count todo-count">
+                {{ todoTasks().length }}
+              </span>
+            </div>
+
+            <div class="column-body">
+              @for (task of todoTasks(); track task.id) {
+                <article class="task-card">
+                  <div class="task-card-content">
+                    <h4>{{ task.title }}</h4>
+                    <p>{{ task.description }}</p>
+                  </div>
+
+                  <div class="task-card-footer">
+                    <span class="status-pill pending-pill">
+                      <span class="status"></span>
+                      Pending
+                    </span>
+
+                    <div class="task-card-actions">
+                      <button
+                        type="button"
+                        class="btn-complete"
+                        (click)="completeTask(task)"
+                        [attr.aria-label]="'Complete ' + task.title">
+                        ✓ Complete
+                      </button>
+
+                      <button
+                        type="button"
+                        class="btn-delete"
+                        (click)="deleteTask(task)"
+                        [attr.aria-label]="'Delete ' + task.title">
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              } @empty {
+                <div class="column-empty">
+                  <span class="empty-icon">✓</span>
+                  <h4>All caught up!</h4>
+                  <p>You have no pending tasks.</p>
+                </div>
+              }
+            </div>
+          </section>
+
+          <!-- Right column -->
+          <section class="task-column completed-column"
+                   aria-labelledby="completed-heading">
+            <div class="column-header">
+              <div class="column-title-group">
+                <span class="column-icon completed-icon">✓</span>
+                <div>
+                  <h3 id="completed-heading">Completed</h3>
+                  <p>Tasks you've finished</p>
+                </div>
+              </div>
+
+              <span class="task-count completed-count">
+                {{ completedTasks().length }}
+              </span>
+            </div>
+
+            <div class="column-body">
+              @for (task of completedTasks(); track task.id) {
+                <article class="task-card is-completed">
+                  <div class="task-card-content">
+                    <h4>{{ task.title }}</h4>
+                    <p>{{ task.description }}</p>
+                  </div>
+
+                  <div class="task-card-footer">
+                    <span class="status-pill completed-pill">
+                      <span class="status"></span>
+                      Completed
+                    </span>
+
+                    <div class="task-card-actions">
+                      <button
+                        type="button"
+                        class="btn-delete"
+                        (click)="deleteTask(task)"
+                        [attr.aria-label]="'Delete ' + task.title">
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              } @empty {
+                <div class="column-empty">
+                  <span class="empty-icon">☆</span>
+                  <h4>Nothing completed yet</h4>
+                  <p>Complete a task to see it here.</p>
+                </div>
+              }
+            </div>
+          </section>
+
+        </div>
+      }
+    </section>
+
+  </div>
+</main>
